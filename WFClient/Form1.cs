@@ -25,6 +25,7 @@ namespace WFClient
         private Stopwatch _stopwatch;
         private TimeSpan _ts;
         private long _sum;
+        private List<TaskConfiguration> _items;
 
 
         public Form1()
@@ -38,6 +39,7 @@ namespace WFClient
         {
             _Exclist = new List<int>();
             _stopwatch = new Stopwatch();
+            _items = new List<TaskConfiguration>();
 
         }
 
@@ -77,7 +79,7 @@ namespace WFClient
             {
                 _Exclist.Clear();
                 btnSend.Enabled = false;
-                btnSendTest.Enabled = false;
+                btnAddToTestList.Enabled = false;
 
                 _stopwatch.Stop();
                 _stopwatch.Reset();
@@ -98,16 +100,13 @@ namespace WFClient
 
         private void btnSendTest_Click(object sender, EventArgs e)
         {
-            btnSend.Enabled = false;
-            btnSendTest.Enabled = false;
-
             txtOutput.Text = JToken.Parse(SendRequestTest().Content).ToString(Formatting.Indented);
         }
         private void bwRequests_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
         {
             var backgroundWorker = sender as BackgroundWorker;
 
-            ExecuteRequest(backgroundWorker, 10, (int.Parse(txtTotalRequests.Text)),cbIsMultiThreaded.Checked);
+            ExecuteRequest(backgroundWorker, int.Parse(txtConcurrentRequests.Text), (int.Parse(txtTotalRequests.Text)), cbIsMultiThreaded.Checked);
         }
 
         private void SingleThreaded(BackgroundWorker backgroundWorker)
@@ -142,65 +141,69 @@ namespace WFClient
 
             if (isMultiThreaded)
             {
-                Parallel.For(0, maxRequests, i =>
-                {
-                    var startDate = DateTime.Now;
-                    var sw = new Stopwatch();
-                    sw.Start();
+                var maxDegreeOfParallelism = maxThreads == 0 ? 1 : maxThreads;
+                var options = new ParallelOptions() { MaxDegreeOfParallelism = maxDegreeOfParallelism };
 
-
-                    var restResponse = runner.SendRequest(requestCode);
-
-
-                    sw.Stop();
-                    var endDate = DateTime.Now;
-
-
-                    _concurrentQueue.Enqueue(new TestRunnerQ
-                    {
-                        TaskName = $"Request {i}",//TODO: Get Custom Name from UI.
-                        MaxThreads = maxThreads,
-                        MaxRequests = maxRequests,
-                        ExecuteId = i,
-                        IsSuccessful = restResponse.IsSuccessful,
-                        StartTime = startDate,
-                        EndTime = endDate,
-                        ElapsedMilliseconds = sw.ElapsedMilliseconds
-                    });
-                    backgroundWorker?.ReportProgress(1);
-                });
+                Parallel.For(0, maxRequests, options, i =>
+                 {
+                     DoWork(backgroundWorker, maxThreads, maxRequests, runner, requestCode, i);
+                 });
+                //TaskMultiThreading(backgroundWorker, maxThreads, maxRequests, runner, requestCode);
             }
             else
             {
                 for (int i = 1; i <= maxRequests; i++)
                 {
-                    var startDate = DateTime.Now;
-                    var sw = new Stopwatch();
-                    sw.Start();
-
-
-                    var restResponse = runner.SendRequest(requestCode);
-
-
-                    sw.Stop();
-                    var endDate = DateTime.Now;
-
-
-                    _concurrentQueue.Enqueue(new TestRunnerQ
-                    {
-                        TaskName = $"Task {i}",//TODO: Get Custom Name from UI.
-                        MaxThreads = maxThreads,
-                        MaxRequests = maxRequests,
-                        ExecuteId = i,
-                        IsSuccessful = restResponse.IsSuccessful,
-                        StartTime = startDate,
-                        EndTime = endDate,
-                        ElapsedMilliseconds = sw.ElapsedMilliseconds
-                    });
-                    backgroundWorker?.ReportProgress(1);
+                    DoWork(backgroundWorker, maxThreads, maxRequests, runner, requestCode, i);
                 }
             }
-            
+
+        }
+
+        private void TaskMultiThreading(BackgroundWorker backgroundWorker, int maxThreads, int maxRequests, Runner runner,
+            string requestCode)
+        {
+            var tasks = new List<Task>(maxRequests);
+            for (int i = 0; i < maxRequests; i++)
+            {
+                tasks.Add(Task.Factory.StartNew(() => DoWork(backgroundWorker, maxThreads, maxRequests, runner, requestCode, i)));
+            }
+            Task.WaitAll(tasks.ToArray());
+        }
+
+        private void ParallelMultiThreading(BackgroundWorker backgroundWorker, int maxThreads, int maxRequests, Runner runner,
+            string requestCode)
+        {
+            Parallel.For(0, maxRequests, i => { DoWork(backgroundWorker, maxThreads, maxRequests, runner, requestCode, i); });
+        }
+
+        private void DoWork(BackgroundWorker backgroundWorker, int maxThreads, int maxRequests, Runner runner,
+            string requestCode, int i)
+        {
+            var startDate = DateTime.Now;
+            var sw = new Stopwatch();
+            sw.Start();
+
+
+            var restResponse = runner.SendRequest(requestCode);
+
+
+            sw.Stop();
+            var endDate = DateTime.Now;
+
+
+            _concurrentQueue.Enqueue(new TestRunnerQ
+            {
+                TaskName = $"Activity {i}", //TODO: Get Custom Name from UI.
+                MaxThreads = maxThreads,
+                MaxRequests = maxRequests,
+                ExecuteId = i,
+                IsSuccessful = restResponse.IsSuccessful,
+                StartTime = startDate,
+                EndTime = endDate,
+                ElapsedMilliseconds = sw.ElapsedMilliseconds
+            });
+            backgroundWorker?.ReportProgress(1);
         }
 
         private void bwRequests_ProgressChanged(object sender, System.ComponentModel.ProgressChangedEventArgs e)
@@ -214,7 +217,7 @@ namespace WFClient
             var percentage = (double)(progressValue * 100) / (double)_upperBound;
             pbProgress.Value = (int)percentage;
             lblPercentage.Text = (int)percentage + @"% Completed";
-            lblTotalCompletedCount.Text = ((int)progressValue).ToString() + @"/" + _upperBound.ToString();
+            lblTotalCompletedCount.Text = (progressValue).ToString() + @"/" + _upperBound.ToString();
 
             _sum = _stopwatch.ElapsedMilliseconds;
             TimeSpan t = TimeSpan.FromMilliseconds(_sum);
@@ -227,7 +230,8 @@ namespace WFClient
 
             if ((int)percentage != 100) return;
 
-            btnSend.Enabled = false;
+            btnSend.Enabled = true;
+            btnAddToTestList.Enabled = true;
         }
 
         private void UpdateDataGridView(DataTable dataTable)
@@ -250,6 +254,34 @@ namespace WFClient
         private void lblMaxConcurrentThreads_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void btnAddToTestList_Click(object sender, EventArgs e)
+        {
+            PopulateCifigurationGrid();
+        }
+
+        private void PopulateCifigurationGrid()
+        {
+            Form2 frm = new Form2();
+            if (frm.ShowDialog(this) == DialogResult.OK)
+            {
+                _items.Add(
+                    new TaskConfiguration()
+                    {
+                        ItemId = _items.Count + 1,
+                        Name = frm.ItemName,
+                        MaxConcurrentThreads = frm.ConcurrentRequests,
+                        TotalRequests = frm.TotalRequests,
+                        IsMultiThreadExecution = frm.IsMultiThreaded,
+                        RequestCode = frm.RequestCode
+                    });
+            }
+            frm.Dispose();
+
+            var dataTable = CreateDataTable(_items);
+            gvConfigurationSettings.DataSource = dataTable;
+            gvConfigurationSettings.DataMember = dataTable.TableName;
         }
     }
 }

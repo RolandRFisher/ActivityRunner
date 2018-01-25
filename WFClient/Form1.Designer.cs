@@ -99,6 +99,7 @@
             this.btnAddToTestList.TabIndex = 6;
             this.btnAddToTestList.Text = ">> Add >>";
             this.btnAddToTestList.UseVisualStyleBackColor = true;
+            this.btnAddToTestList.Click += new System.EventHandler(this.btnAddToTestList_Click);
             // 
             // bwRequests
             // 
@@ -129,7 +130,7 @@
             // lblTotalRequests
             // 
             this.lblTotalRequests.AutoSize = true;
-            this.lblTotalRequests.Location = new System.Drawing.Point(836, 131);
+            this.lblTotalRequests.Location = new System.Drawing.Point(1062, 322);
             this.lblTotalRequests.Name = "lblTotalRequests";
             this.lblTotalRequests.Size = new System.Drawing.Size(79, 13);
             this.lblTotalRequests.TabIndex = 10;
@@ -159,7 +160,7 @@
             // cbIsMultiThreaded
             // 
             this.cbIsMultiThreaded.AutoSize = true;
-            this.cbIsMultiThreaded.Location = new System.Drawing.Point(735, 321);
+            this.cbIsMultiThreaded.Location = new System.Drawing.Point(735, 320);
             this.cbIsMultiThreaded.Name = "cbIsMultiThreaded";
             this.cbIsMultiThreaded.Size = new System.Drawing.Size(135, 17);
             this.cbIsMultiThreaded.TabIndex = 13;
@@ -189,7 +190,7 @@
             // lblMaxConcurrentThreads
             // 
             this.lblMaxConcurrentThreads.AutoSize = true;
-            this.lblMaxConcurrentThreads.Location = new System.Drawing.Point(650, 131);
+            this.lblMaxConcurrentThreads.Location = new System.Drawing.Point(876, 322);
             this.lblMaxConcurrentThreads.Name = "lblMaxConcurrentThreads";
             this.lblMaxConcurrentThreads.Size = new System.Drawing.Size(124, 13);
             this.lblMaxConcurrentThreads.TabIndex = 16;
@@ -198,7 +199,7 @@
             // 
             // txtConcurrentRequests
             // 
-            this.txtConcurrentRequests.Location = new System.Drawing.Point(780, 126);
+            this.txtConcurrentRequests.Location = new System.Drawing.Point(1000, 320);
             this.txtConcurrentRequests.Name = "txtConcurrentRequests";
             this.txtConcurrentRequests.Size = new System.Drawing.Size(50, 20);
             this.txtConcurrentRequests.TabIndex = 18;
@@ -210,7 +211,7 @@
             // 
             // txtTotalRequests
             // 
-            this.txtTotalRequests.Location = new System.Drawing.Point(921, 127);
+            this.txtTotalRequests.Location = new System.Drawing.Point(1147, 320);
             this.txtTotalRequests.Name = "txtTotalRequests";
             this.txtTotalRequests.Size = new System.Drawing.Size(47, 20);
             this.txtTotalRequests.TabIndex = 19;
@@ -244,6 +245,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.Name = "Form1";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Form1";
             ((System.ComponentModel.ISupportInitialize)(this.gvResults)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.gvConfigurationSettings)).EndInit();
