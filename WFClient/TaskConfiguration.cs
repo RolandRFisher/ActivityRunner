@@ -12,5 +12,8 @@
         public int TotalRequests { get; set; }
         public bool IsMultiThreadExecution { get; set; }
         public string RequestCode { get; set; }
+        public bool IsRequestPerSecond { get; set; }
+        public int RequestPerSecond { get; set; }
+        public int Durtion { get; set; }
     }
 }

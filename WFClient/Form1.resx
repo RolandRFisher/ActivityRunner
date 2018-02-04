@@ -118,13 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="RequestCode.Text" xml:space="preserve">
-    <value>var client = new RestClient("http://localhost:7979/v1/games");
-var request = new RestRequest(Method.POST);
-request.AddHeader("postman-token", "be89d764-e0c6-7f1d-ba99-bef6956c6f85");
+    <value>var client = new RestClient("https://jsonplaceholder.typicode.com/posts");
+var request = new RestRequest(Method.GET);
+request.AddHeader("postman-token", "96e6335c-71fc-71ae-316f-04c5238c3e62");
 request.AddHeader("cache-control", "no-cache");
-request.AddHeader("token", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJFZGdlTG9jYXRpb24iOiJNSVQiLCJCcmFuZCI6IiIsIlByb3ZpZGVyIjoiIiwiUHJvZHVjdCI6IlZlZ2FzIiwiUGxhdGZvcm0iOiIiLCJMb2dpbiI6IkpvaG5Eb2UiLCJQYXNzd29yZCI6IlBhc3N3b3JkMTIzIiwibmJmIjoxNTE2ODg3NDM1LCJleHAiOjE1MTY5NzM4MzUsImlhdCI6MTUxNjg4NzQzNSwiaXNzIjoiRGlnaU91dHNvdXJjZSIsImF1ZCI6InJlY2VpdmVyVGVzdCJ9.BJFdQcjBQ8MJeJtcqRMlSVJvubJxr9HLVqBNYu5WL-g");
-request.AddHeader("content-type", "application/json");
-request.AddParameter("application/json", "{\r\n\t\"country\":\"\",\r\n\t\"clientCode\":\"\",\r\n\t\"language\":\"\",\r\n\t\"clientType\":1,\r\n\t\"gamingServerId\":312,\r\n\t\"casinoId\":329,\r\n\t\"playerId\":2772489\r\n}\t", ParameterType.RequestBody);
 IRestResponse response = client.Execute(request);</value>
   </data>
   <metadata name="bwRequests.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
@@ -132,5 +129,8 @@ IRestResponse response = client.Execute(request);</value>
   </metadata>
   <metadata name="$this.Locked" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
     <value>True</value>
+  </metadata>
+  <metadata name="$this.TrayHeight" type="System.Int32, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
+    <value>97</value>
   </metadata>
 </root>
