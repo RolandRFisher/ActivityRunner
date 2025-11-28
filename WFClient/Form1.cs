@@ -30,6 +30,8 @@ namespace WFClient
         private TimeSpan _ts;
         private long _sum;
         private ConcurrentQueue<TaskConfiguration> _items;
+        private DateTime _lastGridUpdate;
+        private const int GridUpdateIntervalMs = 100; // Throttle grid updates to every 100ms
 
 
         public Form1()
@@ -44,6 +46,7 @@ namespace WFClient
             _progressCount = 0;
             _stopwatch = new Stopwatch();
             _items = new ConcurrentQueue<TaskConfiguration>();
+            _lastGridUpdate = DateTime.MinValue;
             btnAddToTestList.Enabled = true;
         }
 
@@ -291,11 +294,17 @@ namespace WFClient
 
             lblTotalExecutionTime.Text = String.Format("{0:00}:{1:00}:{2:00}.{3:00}", t.TotalHours, t.TotalMinutes, t.TotalSeconds, t.TotalMilliseconds);
 
+            // Throttle grid updates to avoid excessive UI rebuilds on high-frequency progress updates
+            var now = DateTime.Now;
+            var isComplete = (int)percentage == 100;
+            if (isComplete || (now - _lastGridUpdate).TotalMilliseconds >= GridUpdateIntervalMs)
+            {
+                _lastGridUpdate = now;
+                var dataTable = CreateDataTable(_concurrentQueue.ToList());
+                UpdateResultsGridView(dataTable);
+            }
 
-            var dataTable = CreateDataTable(_concurrentQueue.ToList());
-            UpdateResultsGridView(dataTable);
-
-            if ((int)percentage != 100) return;
+            if (!isComplete) return;
 
             btnSend.Enabled = true;
             btnAddToTestList.Enabled = true;
