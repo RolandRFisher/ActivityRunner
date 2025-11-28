@@ -24,7 +24,7 @@ namespace WFClient
     {
         private int _lowerBound = 1;
         private int _upperBound = 100;
-        private List<int> _Exclist;
+        private int _progressCount;
         private ConcurrentQueue<TestRunnerQ> _concurrentQueue;
         private Stopwatch _stopwatch;
         private TimeSpan _ts;
@@ -41,7 +41,7 @@ namespace WFClient
 
         private void Init()
         {
-            _Exclist = new List<int>();
+            _progressCount = 0;
             _stopwatch = new Stopwatch();
             _items = new ConcurrentQueue<TaskConfiguration>();
             btnAddToTestList.Enabled = true;
@@ -97,7 +97,7 @@ namespace WFClient
 
                 try
                 {
-                    _Exclist.Clear();
+                    _progressCount = 0;
                     btnSend.Enabled = false;
                     btnAddToTestList.Enabled = false;
 
@@ -280,8 +280,8 @@ namespace WFClient
         }
         private void UpdateUi(ProgressChangedEventArgs e)
         {
-            _Exclist.Add(e.ProgressPercentage);
-            var progressValue = _Exclist.Sum(i => i);
+            _progressCount += e.ProgressPercentage;
+            var progressValue = _progressCount;
             var percentage = (double)(progressValue * 100) / (double)_upperBound;
             pbProgress.Value = (int)percentage;
             lblPercentage.Text = (int)percentage + @"% Completed";
@@ -293,7 +293,7 @@ namespace WFClient
             lblTotalExecutionTime.Text = String.Format("{0:00}:{1:00}:{2:00}.{3:00}", t.TotalHours, t.TotalMinutes, t.TotalSeconds, t.TotalMilliseconds);
 
 
-            var dataTable = CreateDataTable(_concurrentQueue.ToList().ToList());
+            var dataTable = CreateDataTable(_concurrentQueue.ToList());
             UpdateResultsGridView(dataTable);
 
             if ((int)percentage != 100) return;
@@ -469,12 +469,12 @@ namespace WFClient
 
             if (chbDetailSummary.Checked)
             {
-                var dataTable = CreateDataTable(_concurrentQueue.ToList().ToList());
+                var dataTable = CreateDataTable(_concurrentQueue.ToList());
                 PopulateSummary(dataTable);
             }
             else
             {
-                var dataTable = CreateDataTable(_concurrentQueue.ToList().ToList());
+                var dataTable = CreateDataTable(_concurrentQueue.ToList());
                 UpdateResultsGridView(dataTable);
             }
         }
@@ -483,18 +483,22 @@ namespace WFClient
         {
             List<TestRunnerQ> testRunnerQs = new List<TestRunnerQ>();
 
+            // Cache property info lookup outside the loops to avoid repeated reflection calls
+            var propertyInfos = typeof(TestRunnerQ).GetProperties();
+            var propertyLookup = new Dictionary<string, System.Reflection.PropertyInfo>();
+            foreach (var prop in propertyInfos)
+            {
+                propertyLookup[prop.Name] = prop;
+            }
+
             for (int i = 0; i < dt.Rows.Count; i++)
             {
                 TestRunnerQ tr = new TestRunnerQ();
                 foreach (DataColumn column in dt.Columns)
                 {
-                    var propertyInfos = tr.GetType().GetProperties();
-                    foreach (var propertyInfo in propertyInfos)
+                    if (propertyLookup.TryGetValue(column.ColumnName, out var propertyInfo))
                     {
-                        if (propertyInfo.Name == column.ColumnName)
-                        {
-                            propertyInfo.SetValue(tr, dt.Rows[i][column.ColumnName]);
-                        }
+                        propertyInfo.SetValue(tr, dt.Rows[i][column.ColumnName]);
                     }
                 }
                 testRunnerQs.Add(tr);
