@@ -35,19 +35,22 @@ namespace APITestLib
 
         private IRestResponse GetRequest(string inputText, out RestRequest request)
         {
-            var entPoint = GetEntPoint(inputText);
+            // Split the input text once and reuse the cached lines for all parsing operations
+            string[] cachedLines = inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            
+            var entPoint = GetEntPoint(inputText, cachedLines);
             var client = new RestClient(entPoint);
-            request = new RestRequest(GetRequestMethod(inputText));
+            request = new RestRequest(GetRequestMethod(inputText, cachedLines));
 
 
-            IDictionary<string, string> headers = GetHeaders(inputText);
+            IDictionary<string, string> headers = GetHeaders(inputText, cachedLines);
             foreach (var key in headers.Keys)
             {
                 request.AddHeader(key, headers[key]);
             }
 
 
-            IDictionary<string, string> bodyParameter = GetBodyParameters(inputText);
+            IDictionary<string, string> bodyParameter = GetBodyParameters(inputText, cachedLines);
             foreach (var key in bodyParameter.Keys)
             {
                 //TODO: fixed GetBodyParameters first
@@ -70,9 +73,14 @@ namespace APITestLib
 
         public string GetEntPoint(string inputText)
         {
+            return GetEntPoint(inputText, null);
+        }
+
+        internal string GetEntPoint(string inputText, string[] cachedLines)
+        {
             var entpoint = string.Empty;
 
-            string[] lines = inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            string[] lines = cachedLines ?? inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
 
             var identifier = "var client = new RestClient(";
 
@@ -97,9 +105,14 @@ namespace APITestLib
         }
         public Method GetRequestMethod(string inputText)
         {
+            return GetRequestMethod(inputText, null);
+        }
+
+        internal Method GetRequestMethod(string inputText, string[] cachedLines)
+        {
             var entpoint = string.Empty;
 
-            string[] lines = inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            string[] lines = cachedLines ?? inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
 
             var identifier = "var request = new RestRequest(Method.";
 
@@ -125,9 +138,14 @@ namespace APITestLib
 
         public IDictionary<string, string> GetHeaders(string inputText)
         {
+            return GetHeaders(inputText, null);
+        }
+
+        internal IDictionary<string, string> GetHeaders(string inputText, string[] cachedLines)
+        {
             IDictionary<string, string> result = new Dictionary<string, string>();
 
-            string[] lines = inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            string[] lines = cachedLines ?? inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
 
             var identifier = "request.AddHeader(";
 
@@ -154,9 +172,14 @@ namespace APITestLib
 
         public IDictionary<string, string> GetBodyParameters(string inputText)
         {
+            return GetBodyParameters(inputText, null);
+        }
+
+        internal IDictionary<string, string> GetBodyParameters(string inputText, string[] cachedLines)
+        {
             IDictionary<string, string> result = new Dictionary<string, string>();
 
-            string[] lines = inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            string[] lines = cachedLines ?? inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
 
             var identifier = "request.AddParameter(";
 
