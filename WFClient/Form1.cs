@@ -30,7 +30,8 @@ namespace WFClient
         private TimeSpan _ts;
         private long _sum;
         private ConcurrentQueue<TaskConfiguration> _items;
-        private const int GridUpdateIntervalMs = 100; // Throttle grid updates to every 100ms
+        // Throttle grid updates to every 100ms using Stopwatch high-resolution timer
+        private static readonly long GridUpdateIntervalTicks = (Stopwatch.Frequency * 100) / 1000;
         private long _lastGridUpdateTicks;
 
 
@@ -295,9 +296,9 @@ namespace WFClient
             lblTotalExecutionTime.Text = String.Format("{0:00}:{1:00}:{2:00}.{3:00}", t.TotalHours, t.TotalMinutes, t.TotalSeconds, t.TotalMilliseconds);
 
             // Throttle grid updates to avoid excessive UI rebuilds on high-frequency progress updates
-            var currentTicks = Environment.TickCount;
+            var currentTicks = Stopwatch.GetTimestamp();
             var isComplete = (int)percentage == 100;
-            if (isComplete || (currentTicks - _lastGridUpdateTicks) >= GridUpdateIntervalMs)
+            if (isComplete || (currentTicks - _lastGridUpdateTicks) >= GridUpdateIntervalTicks)
             {
                 _lastGridUpdateTicks = currentTicks;
                 var dataTable = CreateDataTable(_concurrentQueue.ToList());
