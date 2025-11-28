@@ -17,37 +17,29 @@ namespace APITestLib
         public IRestResponse SendRequest(string inputText)
         {
             RestRequest r;
-            var response = GetRequest(inputText, out r);
-
-
-            //var client = new RestClient("http://localhost:7979/v1/games");
-            //var request = new RestRequest(Method.POST);
-            //request.AddHeader("postman-token", "1e1d7a74-b682-8031-1d0e-d4915e81761c");
-            //request.AddHeader("cache-control", "no-cache");
-            //request.AddHeader("token", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJFZGdlTG9jYXRpb24iOiJNSVQiLCJCcmFuZCI6IiIsIlByb3ZpZGVyIjoiIiwiUHJvZHVjdCI6IlZlZ2FzIiwiUGxhdGZvcm0iOiIiLCJMb2dpbiI6IkpvaG5Eb2UiLCJQYXNzd29yZCI6IlBhc3N3b3JkMTIzIiwibmJmIjoxNTE2Njk3OTk2LCJleHAiOjE1MTY3ODQzOTYsImlhdCI6MTUxNjY5Nzk5NiwiaXNzIjoiRGlnaU91dHNvdXJjZSIsImF1ZCI6InJlY2VpdmVyVGVzdCJ9.-svAG7IgxJH_js7y2K2ph1t3-E-AGur0YzLg3Gsw2X0");
-            //request.AddHeader("content-type", "application/json");
-            //request.AddParameter("application/json", "{\r\n\t\"country\":\"\",\r\n\t\"clientCode\":\"\",\r\n\t\"language\":\"\",\r\n\t\"clientType\":1,\r\n\t\"gamingServerId\":312,\r\n\t\"casinoId\":329,\r\n\t\"playerId\":2772489\r\n}\t", ParameterType.RequestBody);
-            //IRestResponse response = client.Execute(request);
+            // Parse lines once and reuse them for all parsing operations
+            string[] lines = inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            var response = GetRequest(lines, out r);
 
             return response;
 
         }
 
-        private IRestResponse GetRequest(string inputText, out RestRequest request)
+        private IRestResponse GetRequest(string[] lines, out RestRequest request)
         {
-            var entPoint = GetEntPoint(inputText);
+            var entPoint = GetEntPoint(lines);
             var client = new RestClient(entPoint);
-            request = new RestRequest(GetRequestMethod(inputText));
+            request = new RestRequest(GetRequestMethod(lines));
 
 
-            IDictionary<string, string> headers = GetHeaders(inputText);
+            IDictionary<string, string> headers = GetHeaders(lines);
             foreach (var key in headers.Keys)
             {
                 request.AddHeader(key, headers[key]);
             }
 
 
-            IDictionary<string, string> bodyParameter = GetBodyParameters(inputText);
+            IDictionary<string, string> bodyParameter = GetBodyParameters(lines);
             foreach (var key in bodyParameter.Keys)
             {
                 //TODO: fixed GetBodyParameters first
@@ -70,9 +62,13 @@ namespace APITestLib
 
         public string GetEntPoint(string inputText)
         {
-            var entpoint = string.Empty;
-
             string[] lines = inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            return GetEntPoint(lines);
+        }
+
+        private string GetEntPoint(string[] lines)
+        {
+            var entpoint = string.Empty;
 
             var identifier = "var client = new RestClient(";
 
@@ -97,10 +93,12 @@ namespace APITestLib
         }
         public Method GetRequestMethod(string inputText)
         {
-            var entpoint = string.Empty;
-
             string[] lines = inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            return GetRequestMethod(lines);
+        }
 
+        private Method GetRequestMethod(string[] lines)
+        {
             var identifier = "var request = new RestRequest(Method.";
 
             foreach (var line in lines)
@@ -125,9 +123,13 @@ namespace APITestLib
 
         public IDictionary<string, string> GetHeaders(string inputText)
         {
-            IDictionary<string, string> result = new Dictionary<string, string>();
-
             string[] lines = inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            return GetHeaders(lines);
+        }
+
+        private IDictionary<string, string> GetHeaders(string[] lines)
+        {
+            IDictionary<string, string> result = new Dictionary<string, string>();
 
             var identifier = "request.AddHeader(";
 
@@ -154,9 +156,13 @@ namespace APITestLib
 
         public IDictionary<string, string> GetBodyParameters(string inputText)
         {
-            IDictionary<string, string> result = new Dictionary<string, string>();
-
             string[] lines = inputText.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            return GetBodyParameters(lines);
+        }
+
+        private IDictionary<string, string> GetBodyParameters(string[] lines)
+        {
+            IDictionary<string, string> result = new Dictionary<string, string>();
 
             var identifier = "request.AddParameter(";
 

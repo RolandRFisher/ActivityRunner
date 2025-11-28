@@ -24,12 +24,15 @@ namespace WFClient
     {
         private int _lowerBound = 1;
         private int _upperBound = 100;
-        private List<int> _Exclist;
+        private int _progressCount;
         private ConcurrentQueue<TestRunnerQ> _concurrentQueue;
         private Stopwatch _stopwatch;
         private TimeSpan _ts;
         private long _sum;
         private ConcurrentQueue<TaskConfiguration> _items;
+        // Throttle grid updates to every 100ms using Stopwatch high-resolution timer
+        private static readonly long GridUpdateIntervalTicks = (Stopwatch.Frequency * 100) / 1000;
+        private long _lastGridUpdateTicks;
 
 
         public Form1()
@@ -41,9 +44,10 @@ namespace WFClient
 
         private void Init()
         {
-            _Exclist = new List<int>();
+            _progressCount = 0;
             _stopwatch = new Stopwatch();
             _items = new ConcurrentQueue<TaskConfiguration>();
+            _lastGridUpdateTicks = 0;
             btnAddToTestList.Enabled = true;
         }
 
@@ -97,7 +101,7 @@ namespace WFClient
 
                 try
                 {
-                    _Exclist.Clear();
+                    _progressCount = 0;
                     btnSend.Enabled = false;
                     btnAddToTestList.Enabled = false;
 
@@ -280,23 +284,28 @@ namespace WFClient
         }
         private void UpdateUi(ProgressChangedEventArgs e)
         {
-            _Exclist.Add(e.ProgressPercentage);
-            var progressValue = _Exclist.Sum(i => i);
-            var percentage = (double)(progressValue * 100) / (double)_upperBound;
+            _progressCount += e.ProgressPercentage;
+            var percentage = (double)(_progressCount * 100) / (double)_upperBound;
             pbProgress.Value = (int)percentage;
             lblPercentage.Text = (int)percentage + @"% Completed";
-            lblTotalCompletedCount.Text = (progressValue).ToString() + @"/" + _upperBound.ToString();
+            lblTotalCompletedCount.Text = _progressCount.ToString() + @"/" + _upperBound.ToString();
 
             _sum = _stopwatch.ElapsedMilliseconds;
             TimeSpan t = TimeSpan.FromMilliseconds(_sum);
 
             lblTotalExecutionTime.Text = String.Format("{0:00}:{1:00}:{2:00}.{3:00}", t.TotalHours, t.TotalMinutes, t.TotalSeconds, t.TotalMilliseconds);
 
+            // Throttle grid updates to avoid excessive UI rebuilds on high-frequency progress updates
+            var currentTicks = Stopwatch.GetTimestamp();
+            var isComplete = (int)percentage == 100;
+            if (isComplete || (currentTicks - _lastGridUpdateTicks) >= GridUpdateIntervalTicks)
+            {
+                _lastGridUpdateTicks = currentTicks;
+                var dataTable = CreateDataTable(_concurrentQueue.ToList());
+                UpdateResultsGridView(dataTable);
+            }
 
-            var dataTable = CreateDataTable(_concurrentQueue.ToList().ToList());
-            UpdateResultsGridView(dataTable);
-
-            if ((int)percentage != 100) return;
+            if (!isComplete) return;
 
             btnSend.Enabled = true;
             btnAddToTestList.Enabled = true;
@@ -469,12 +478,12 @@ namespace WFClient
 
             if (chbDetailSummary.Checked)
             {
-                var dataTable = CreateDataTable(_concurrentQueue.ToList().ToList());
+                var dataTable = CreateDataTable(_concurrentQueue.ToList());
                 PopulateSummary(dataTable);
             }
             else
             {
-                var dataTable = CreateDataTable(_concurrentQueue.ToList().ToList());
+                var dataTable = CreateDataTable(_concurrentQueue.ToList());
                 UpdateResultsGridView(dataTable);
             }
         }
@@ -483,18 +492,19 @@ namespace WFClient
         {
             List<TestRunnerQ> testRunnerQs = new List<TestRunnerQ>();
 
+            // Cache reflection results outside the loops for performance
+            var propertyInfos = typeof(TestRunnerQ).GetProperties();
+            // Build a dictionary for fast column name lookup
+            var propertyMap = propertyInfos.ToDictionary(p => p.Name, p => p);
+
             for (int i = 0; i < dt.Rows.Count; i++)
             {
                 TestRunnerQ tr = new TestRunnerQ();
                 foreach (DataColumn column in dt.Columns)
                 {
-                    var propertyInfos = tr.GetType().GetProperties();
-                    foreach (var propertyInfo in propertyInfos)
+                    if (propertyMap.TryGetValue(column.ColumnName, out var propertyInfo))
                     {
-                        if (propertyInfo.Name == column.ColumnName)
-                        {
-                            propertyInfo.SetValue(tr, dt.Rows[i][column.ColumnName]);
-                        }
+                        propertyInfo.SetValue(tr, dt.Rows[i][column.ColumnName]);
                     }
                 }
                 testRunnerQs.Add(tr);
